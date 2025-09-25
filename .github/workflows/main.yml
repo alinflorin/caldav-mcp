@@ -1,0 +1,217 @@
+name: Main
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  MAJOR_MINOR: "1.0"
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.version.outputs.VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Important for fetching tags
+
+      - name: Calculate version
+        id: version
+        run: |
+          MAJOR_MINOR=${{ env.MAJOR_MINOR }}
+
+          LAST_TAG=$(git tag --list "v$MAJOR_MINOR.*" --sort=-v:refname | head -n1)
+          if [[ -z "$LAST_TAG" ]]; then
+            PATCH=0
+          else
+            LAST_PATCH=${LAST_TAG##*.}
+            PATCH=$((LAST_PATCH + 1))
+          fi
+
+          VERSION="$MAJOR_MINOR.$PATCH"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_ENV  # Export for use in other jobs
+          echo "Calculated version: $VERSION"
+
+  rename-run:
+    needs: version
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Update the summary
+        run: |
+          VERSION="${{ needs.version.outputs.VERSION }}"
+          PR_TITLE=""
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            PR_TITLE="PR: ${{ github.event.pull_request.title }}"
+          fi
+
+          SUMMARY="Version: $VERSION"
+          if [ -n "$PR_TITLE" ]; then
+            SUMMARY="$PR_TITLE - $SUMMARY"
+          fi
+
+          echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY
+
+  analyze:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: actions
+          build-mode: none
+        - language: javascript-typescript
+          build-mode: none
+        - language: csharp
+          build-mode: autobuild
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
+
+  docker-build:
+    env:
+      VERSION: ${{ needs.version.outputs.VERSION }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runs-on: ubuntu-latest
+          - platform: linux/arm64
+            runs-on: ubuntu-24.04-arm
+    needs: [version]
+    runs-on: ${{ matrix.runs-on }}
+
+    steps:
+      - name: Prepare
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
+      - name: Login to GHCR (only on main)
+        uses: docker/login-action@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Build
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+          platforms: ${{ matrix.platform }}
+          tags: ghcr.io/alinflorin/${{github.event.repository.name}}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.version.outputs.VERSION }}
+
+      - name: Export digest
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  docker-merge:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs:
+      - docker-build
+      - version
+    env:
+      VERSION: ${{ needs.version.outputs.VERSION }}
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: ${{ github.event.repository.name }}-digests-*
+          merge-multiple: true
+
+      - name: Login to GHCR (only on main)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/alinflorin/${{ github.event.repository.name }}:${{ env.VERSION }} -t ghcr.io/alinflorin/${{ github.event.repository.name }}:latest \
+            $(printf 'ghcr.io/alinflorin/${{ github.event.repository.name }}@sha256:%s ' *)
+
+
+  set-version:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [version, docker-merge]
+    env:
+      VERSION: ${{ needs.version.outputs.VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Git tag
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git tag v${{ env.VERSION }}
+          git push origin v${{ env.VERSION }}
