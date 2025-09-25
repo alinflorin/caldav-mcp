@@ -17,13 +17,13 @@
   "scripts": {
     "test": "jest --ci --coverage --passWithNoTests",
     "test:dev": "jest --watch",
-    "start": "tsx watch index.ts",
+    "dev": "fastmcp dev index.ts",
+    "inspect": "fastmcp inspect index.ts",
     "build": "ncc build index.ts -o dist"
   },
   "devDependencies": {
     "jest": "^30.1.3",
     "node": "^22.20.0",
-    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
   "dependencies": {

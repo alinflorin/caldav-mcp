@@ -1,19 +1,34 @@
 import dotenv from "dotenv"; dotenv.config();
 import { FastMCP } from "fastmcp";
 import { VERSION } from "./version";
-import { config } from "./config";
-import authenticationMiddleware from "./middlewares/authentication.middleware";
 
 const server = new FastMCP({
   name: "CalDAV MCP",
   version: VERSION,
-  authenticate: authenticationMiddleware,
+  authenticate: async (request) => {
+    if (!process.env.API_KEY) {
+      return {id: "user"};
+    }
+    const apiKey = request.headers["x-api-key"];
+    if (apiKey !== process.env.API_KEY) {
+      throw new Response(null, {
+        status: 401,
+        statusText: "Unauthorized",
+      });
+    }
+    return {
+      id: "user",
+    };
+  },
 });
+
+
+
 
 await server.start({
   transportType: "httpStream",
   httpStream: {
-    port: config.PORT,
+    port: 8080,
     stateless: true
   },
 });
