@@ -17,9 +17,9 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "test:dev": "vitest --watch --passWithNoTests",
-    "dev": "fastmcp inspect src/index.ts --transport http-stream --port 8080 --stateless true",
-    "start": "tsx watch src/index.ts",
-    "build": "ncc build src/index.ts -o dist"
+    "inspect": "fastmcp inspect src/index.ts",
+    "build": "ncc build src/index.ts -o dist",
+    "start": "tsx watch src/index.ts"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
