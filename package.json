@@ -1,0 +1,30 @@
+{
+  "name": "caldav-mcp",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/alinflorin/caldav-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/alinflorin/caldav-mcp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alinflorin/caldav-mcp.git"
+  },
+  "license": "MIT",
+  "author": "Alin-Florin",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsx watch index.ts",
+    "build": "esbuild index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "fastmcp": "^3.18.0"
+  }
+}
