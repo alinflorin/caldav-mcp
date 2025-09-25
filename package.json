@@ -18,15 +18,16 @@
     "test": "jest --ci --coverage --passWithNoTests",
     "test:dev": "jest --watch",
     "start": "tsx watch index.ts",
-    "build": "esbuild index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js"
+    "build": "ncc build index.ts -o dist"
   },
   "devDependencies": {
-    "esbuild": "^0.25.10",
     "jest": "^30.1.3",
+    "node": "^22.20.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
   "dependencies": {
+    "@vercel/ncc": "^0.38.4",
     "dotenv": "^17.2.2",
     "fastmcp": "^3.18.0",
     "zod": "^3.25.76"
