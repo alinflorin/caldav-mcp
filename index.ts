@@ -9,7 +9,7 @@ const server = new FastMCP({
     if (!process.env.API_KEY) {
       return {id: "user"};
     }
-    const apiKey = request.headers["x-api-key"];
+    const apiKey = request.headers["authorization"]?.replace("Bearer ", "");
     if (apiKey !== process.env.API_KEY) {
       throw new Response(null, {
         status: 401,
