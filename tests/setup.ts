@@ -1,8 +1,9 @@
-import { afterEach, beforeEach } from "vitest";
 import dotenv from "dotenv";
+dotenv.config();
+import { afterEach, beforeEach } from "vitest";
 
 beforeEach(() => {
-    dotenv.config();
+    
 });
 
 afterEach(() => {
