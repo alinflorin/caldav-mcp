@@ -5,7 +5,7 @@ COPY ./package.json ./package.json
 COPY ./package-lock.json ./package-lock.json
 RUN npm ci
 COPY . .
-RUN echo "export const VERSION = '${VERSION}';" > ./version.ts
+RUN echo "export const VERSION = '${VERSION}';" > ./src/version.ts
 RUN npm run test
 RUN npm run build
 

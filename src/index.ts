@@ -1,6 +1,8 @@
-import dotenv from "dotenv"; dotenv.config();
+import dotenv from "dotenv";
+dotenv.config();
 import { FastMCP } from "fastmcp";
 import { VERSION } from "./version";
+import { z } from "zod";
 
 const server = new FastMCP({
   name: "CalDAV MCP",
@@ -23,9 +25,27 @@ const server = new FastMCP({
 });
 
 
+server.addTool({
+  description: "A simple tool that returns a greeting message.",
+  name: 'hello_world',
+  annotations: {
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+    readOnlyHint: true,
+    streamingHint: false,
+    title: 'Hello World Tool',
+  },
+  parameters: z.object({
+    name: z.string(),
+  }),
+  execute: async (args, ctx) => {
+    return `Hello, ${args.name}!`;
+  },
+});
 
 
-await server.start({
+server.start({
   transportType: "httpStream",
   httpStream: {
     port: 8080,
