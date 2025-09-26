@@ -17,16 +17,20 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "test:dev": "vitest --watch --passWithNoTests",
+    "test:dev:ui": "vitest --ui",
     "inspect": "fastmcp inspect src/index.ts",
     "dev": "fastmcp dev src/index.ts",
     "build": "ncc build src/index.ts -o dist",
     "start:http": "tsx watch src/index.ts --http",
     "start:stdio": "tsx watch src/index.ts",
     "start": "npm run start:stdio",
-    "start:stdio:once": "tsx src/index.ts"
+    "start:stdio:once": "tsx src/index.ts",
+    "start:mockserver": "node ./tools/fennel/server.js"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
+    "@vitest/ui": "^3.2.4",
+    "concurrently": "^9.2.1",
     "mcp-client": "^1.13.1",
     "node": "^22.20.0",
     "tsx": "^4.20.5",

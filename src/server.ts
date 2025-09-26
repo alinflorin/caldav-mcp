@@ -27,14 +27,6 @@ export const createServer = () => {
   server.addTool({
     description: "A simple tool that returns a greeting message.",
     name: "hello_world",
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: true,
-      readOnlyHint: true,
-      streamingHint: false,
-      title: "Hello World Tool",
-    },
     parameters: z.object({
       name: z.string(),
     }),

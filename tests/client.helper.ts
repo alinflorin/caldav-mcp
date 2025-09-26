@@ -10,8 +10,8 @@ export const setupClient = async () => {
     args: ["run", "start:stdio:once"],
     command: "npm",
     env: {
-      TRANSPORT: "stdio",
       ...process.env,
+      TRANSPORT: "stdio",
     },
   });
   return client;

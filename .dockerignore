@@ -259,3 +259,4 @@ $RECYCLE.BIN/
 .dockerignore
 .gitattributes
 LICENSE
+**/node_modules

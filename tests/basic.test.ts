@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { MCPClient } from "mcp-client";
 import { setupClient } from "./client.helper";
 
 describe("Basic Server tests", () => {
   it("should connect", async () => {
     const client = await setupClient();
     expect(client).toBeDefined();
+    console.log(process.env);
     await client.close();
   });
   it("should list tools", async () => {

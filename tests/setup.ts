@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({
-    quiet: true
+    quiet: true,
+    path: '.env.test',
 });
 import { afterEach, beforeEach } from "vitest";
 
