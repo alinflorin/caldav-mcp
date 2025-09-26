@@ -5,7 +5,6 @@ describe("Basic Server tests", () => {
   it("should connect", async () => {
     const client = await setupClient();
     expect(client).toBeDefined();
-    console.log(process.env);
     await client.close();
   });
   it("should list tools", async () => {
