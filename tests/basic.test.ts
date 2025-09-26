@@ -1,9 +1,18 @@
 import { describe, it, expect } from "vitest";
-import createServer from "../src/server";
+import { MCPClient } from "mcp-client";
+import { setupClient } from "./client.helper";
 
 describe("Basic Server tests", () => {
-  it("should initialize", () => {
-    const server = createServer();
-    expect(server).toBeDefined();
+  it("should connect", async () => {
+    const client = await setupClient();
+    expect(client).toBeDefined();
+    await client.close();
+  });
+  it("should list tools", async () => {
+    const client = await setupClient();
+    const tools = await client.getAllTools();
+    expect(tools).toBeDefined();
+    expect(tools.length).toBeGreaterThan(0);
+    await client.close();
   });
 });

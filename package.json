@@ -22,10 +22,12 @@
     "build": "ncc build src/index.ts -o dist",
     "start:http": "tsx watch src/index.ts --http",
     "start:stdio": "tsx watch src/index.ts",
-    "start": "npm run start:stdio"
+    "start": "npm run start:stdio",
+    "start:stdio:once": "tsx src/index.ts"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
+    "mcp-client": "^1.13.1",
     "node": "^22.20.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
