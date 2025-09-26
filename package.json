@@ -18,10 +18,11 @@
     "test": "vitest run --passWithNoTests",
     "test:dev": "vitest --watch --passWithNoTests",
     "inspect": "fastmcp inspect src/index.ts",
-    "start:stdio": "tsx src/stdio-boot.ts",
-    "dev": "fastmcp dev src/stdio-boot.ts",
+    "dev": "fastmcp dev src/index.ts",
     "build": "ncc build src/index.ts -o dist",
-    "start": "tsx watch src/index.ts"
+    "start:http": "tsx watch src/index.ts --http",
+    "start:stdio": "tsx watch src/index.ts",
+    "start": "npm run start:stdio"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
