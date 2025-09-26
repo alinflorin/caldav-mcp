@@ -18,6 +18,7 @@
     "test": "vitest run --passWithNoTests",
     "test:dev": "vitest --watch --passWithNoTests",
     "inspect": "fastmcp inspect src/index.ts",
+    "start:stdio": "tsx src/stdio-boot.ts",
     "build": "ncc build src/index.ts -o dist",
     "start": "tsx watch src/index.ts"
   },
