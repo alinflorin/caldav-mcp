@@ -7,6 +7,7 @@ import { VERSION } from "./version";
 import { z } from "zod";
 import { createDAVClient } from "tsdav";
 import ICAL from "ical.js";
+import { v4 } from "uuid";
 
 function normalizeValue(value: any) {
   if (value && typeof value.toJSDate === "function") {
@@ -137,9 +138,9 @@ if (!!process.env.CALDAV_URL) {
         .describe("Name of the calendar to create/update event in"),
       description: z.string().describe("Description of the event").optional(),
       summary: z.string().describe("Summary of the event"),
-      eventId: z
+      eventUid: z
         .string()
-        .describe("ID of the event in the case this is an update")
+        .describe("UID of the event in the case this is an update")
         .optional(),
       location: z.string().describe("Location of the event").optional(),
     }),
@@ -154,9 +155,39 @@ if (!!process.env.CALDAV_URL) {
                 args.calendarName.toLowerCase()
           )
         );
-
+      let uuid: string;
+      if (args.eventUid) {
+        uuid = args.eventUid!;
+      } else {
+        uuid = v4().toString();
+      }
       const icalString = "";
-      return "";
+
+      if (args.eventUid) {
+        const foundEvent = await calDavClient.fetchCalendarObjects({
+          calendar: calendar!,
+          filters: {
+            uid: args.eventUid,
+          },
+        });
+        if (foundEvent.length > 0) {
+          // update
+          const event = foundEvent[0];
+          event!.data = icalString;
+          await calDavClient.updateCalendarObject({
+            calendarObject: event!,
+          });
+        }
+      } else {
+        // create
+        await calDavClient.createCalendarObject({
+          calendar: calendar!,
+          iCalString: icalString,
+          filename: uuid + ".ics",
+        });
+      }
+
+      return JSON.stringify({ success: true, uuid: uuid });
     },
   });
 }
