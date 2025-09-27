@@ -6,6 +6,14 @@ import { FastMCP } from "fastmcp";
 import { VERSION } from "./version";
 import { z } from "zod";
 import { createDAVClient } from "tsdav";
+import ICAL from "ical.js";
+
+function normalizeValue(value: any) {
+  if (value && typeof value.toJSDate === "function") {
+    return value.toJSDate().toISOString();
+  }
+  return value;
+}
 
 const server = new FastMCP({
   name: "CalDAV MCP",
@@ -39,23 +47,89 @@ if (!!process.env.CALDAV_URL) {
   });
 
   server.addTool({
-    description: "A simple tool that returns a greeting message.",
-    name: "hello_world",
+    description: "Lists calendars",
+    name: "list_calendars",
+    parameters: z.object({}),
+    execute: async () => {
+      return JSON.stringify(
+        (await calDavClient.fetchCalendars()).map((c) => ({
+          name: c.displayName,
+          url: c.url,
+          color: c.calendarColor,
+          description: c.description,
+          timezone: c.timezone,
+        }))
+      );
+    },
+  });
+
+  server.addTool({
+    description:
+      "Fetches events in a calendar. Supports time range filtering, optionally.",
+    name: "fetch_events_from_calendar",
     parameters: z.object({
-      name: z.string(),
+      startDate: z.string().describe("Start date in ISO format").optional(),
+      endDate: z.string().describe("End date in ISO format").optional(),
+      calendarName: z
+        .string()
+        .describe("Name of the calendar to fetch events from"),
     }),
-    execute: async (args, ctx) => {
-      return "";
+    execute: async (args) => {
+      const calendar = await calDavClient
+        .fetchCalendars()
+        .then((calendars) =>
+          calendars.find(
+            (c) =>
+              c.displayName &&
+              c.displayName.toString().toLowerCase() ===
+                args.calendarName.toLowerCase()
+          )
+        );
+      const results = (
+        await calDavClient.fetchCalendarObjects({
+          calendar: calendar!,
+          timeRange: (args.startDate && args.endDate
+            ? {
+                start: args.startDate!,
+                end: args.endDate!,
+              }
+            : undefined) as any,
+        })
+      ).map((o) => {
+        let parsed: any;
+
+        if (o.data && o.data.length > 0) {
+          const component = new ICAL.Component(
+            ICAL.parse(o.data)
+          ).getFirstSubcomponent("vevent");
+          if (component) {
+            parsed = {};
+            component.getAllProperties().forEach((p) => {
+              if (p.name.toLowerCase() === 'x-apple-structured-data') {
+                return;
+              }
+              parsed[p.name] = p.getValues().length === 1 ? normalizeValue(p.getValues()[0]) : p.getValues().map(x => normalizeValue(x));
+            });
+          }
+        }
+        return {
+          etag: o.etag,
+          url: o.url,
+          data: parsed,
+        };
+      });
+
+      return JSON.stringify(results);
     },
   });
 }
 
-let transport: "httpStream" | "stdio" = "stdio";
-if (process.env.TRANSPORT === "http") {
-  transport = "httpStream";
+let transport: "httpStream" | "stdio" = "httpStream";
+if (process.env.TRANSPORT === "stdio") {
+  transport = "stdio";
 }
-if (process.argv[2] === "--http") {
-  transport = "httpStream";
+if (process.argv[2] === "--stdio") {
+  transport = "stdio";
 }
 server.start({
   transportType: transport,
