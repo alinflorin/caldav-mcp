@@ -9,7 +9,6 @@ RUN echo "export const VERSION = '${VERSION}';" > ./src/version.ts
 RUN npm run build
 
 FROM node:alpine
-ENV TRANSPORT=http
 COPY --from=builder /app/dist /app/dist
 CMD ["node", "/app/dist/index.js"]
 EXPOSE 8080

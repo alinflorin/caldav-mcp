@@ -18,7 +18,22 @@ function normalizeValue(value: any) {
 
 const server = new FastMCP({
   name: "CalDAV MCP",
-  version: VERSION
+  version: VERSION,
+  authenticate: async (request) => {
+    if (!process.env.API_KEY || !request) {
+      return { id: "user" };
+    }
+    const apiKey = request.headers["authorization"]?.replace("Bearer ", "");
+    if (apiKey !== process.env.API_KEY) {
+      throw new Response(null, {
+        status: 401,
+        statusText: "Unauthorized",
+      });
+    }
+    return {
+      id: "user",
+    };
+  },
 });
 
 if (!!process.env.CARDDAV_URL) {
@@ -329,6 +344,17 @@ if (!!process.env.CALDAV_URL) {
   });
 }
 
+let transport: "httpStream" | "stdio" = "httpStream";
+if (process.env.TRANSPORT === "stdio") {
+  transport = "stdio";
+}
+if (process.argv[2] === "--stdio") {
+  transport = "stdio";
+}
 server.start({
-  transportType: 'stdio'
+  transportType: transport,
+  httpStream: {
+    port: 8080,
+    host: '0.0.0.0'
+  },
 });
