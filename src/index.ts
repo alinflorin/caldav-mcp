@@ -156,7 +156,7 @@ if (!!process.env.CALDAV_URL) {
         );
 
       const icalString = "";
-      
+      return "";
     },
   });
 }
