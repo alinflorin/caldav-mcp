@@ -196,36 +196,16 @@ if (!!process.env.CALDAV_URL) {
       if (args.eventUid) {
         const foundEvent = await calDavClient.fetchCalendarObjects({
           calendar: calendar!,
-          filters: [
-            {
-              type: "comp-filter",
-              attrs: { name: "VCALENDAR" },
-              children: [
-                {
-                  type: "comp-filter",
-                  attrs: { name: "VEVENT" },
-                  children: [
-                    {
-                      type: "prop-filter",
-                      attrs: { name: "uid" },
-                      children: [
-                        {
-                          type: "text-match",
-                          value: uuid,
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
+          objectUrls: [
+            calendar!.url +
+              (calendar!.url.endsWith("/") ? "" : "/") +
+              uuid +
+              ".ics",
           ],
         });
-        console.log(foundEvent);
         if (foundEvent.length > 0) {
           // update
           const event = foundEvent[0];
-          console.log(event);
           event!.data = icalString;
           await calDavClient.updateCalendarObject({
             calendarObject: event!,
@@ -240,6 +220,47 @@ if (!!process.env.CALDAV_URL) {
         });
       }
 
+      return JSON.stringify({ success: true, uuid: uuid });
+    },
+  });
+
+  server.addTool({
+    description: "Delete event from calendar",
+    name: "delete_calendar_event",
+    parameters: z.object({
+      eventUid: z.string().describe("UID of the event to delete"),
+      calendarName: z
+        .string()
+        .describe("Name of the calendar to delete event from"),
+    }),
+    execute: async (args) => {
+      const calendar = await calDavClient
+        .fetchCalendars()
+        .then((calendars) =>
+          calendars.find(
+            (c) =>
+              c.displayName &&
+              c.displayName.toString().toLowerCase() ===
+                args.calendarName.toLowerCase()
+          )
+        );
+      const uuid = args.eventUid;
+      const foundEvent = await calDavClient.fetchCalendarObjects({
+        calendar: calendar!,
+        objectUrls: [
+          calendar!.url +
+            (calendar!.url.endsWith("/") ? "" : "/") +
+            uuid +
+            ".ics",
+        ],
+      });
+      if (foundEvent.length > 0) {
+        for (let e of foundEvent) {
+          await calDavClient.deleteCalendarObject({
+            calendarObject: e,
+          });
+        }
+      }
       return JSON.stringify({ success: true, uuid: uuid });
     },
   });
