@@ -18,22 +18,7 @@ function normalizeValue(value: any) {
 
 const server = new FastMCP({
   name: "CalDAV MCP",
-  version: VERSION,
-  authenticate: async (request) => {
-    if (!process.env.API_KEY || !request) {
-      return { id: "user" };
-    }
-    const apiKey = request.headers["authorization"]?.replace("Bearer ", "");
-    if (apiKey !== process.env.API_KEY) {
-      throw new Response(null, {
-        status: 401,
-        statusText: "Unauthorized",
-      });
-    }
-    return {
-      id: "user",
-    };
-  },
+  version: VERSION
 });
 
 if (!!process.env.CARDDAV_URL) {
