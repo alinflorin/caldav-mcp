@@ -344,16 +344,6 @@ if (!!process.env.CALDAV_URL) {
   });
 }
 
-let transport: "httpStream" | "stdio" = "httpStream";
-if (process.env.TRANSPORT === "stdio") {
-  transport = "stdio";
-}
-if (process.argv[2] === "--stdio") {
-  transport = "stdio";
-}
 server.start({
-  transportType: transport,
-  httpStream: {
-    port: 8080,
-  },
+  transportType: 'stdio'
 });
