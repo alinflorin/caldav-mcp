@@ -131,8 +131,8 @@ if (!!process.env.CALDAV_URL) {
     description: "Add or update calendar event",
     name: "add_or_update_calendar_event",
     parameters: z.object({
-      startDate: z.string().describe("Start date in ISO format").optional(),
-      endDate: z.string().describe("End date in ISO format").optional(),
+      startDate: z.string().describe("Start date in ISO format"),
+      endDate: z.string().describe("End date in ISO format"),
       calendarName: z
         .string()
         .describe("Name of the calendar to create/update event in"),
