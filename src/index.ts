@@ -143,6 +143,10 @@ if (!!process.env.CALDAV_URL) {
         .describe("UID of the event in the case this is an update")
         .optional(),
       location: z.string().describe("Location of the event").optional(),
+      attendees: z
+        .string()
+        .describe("Attendees of the event. Emails separated by comma")
+        .optional(),
     }),
     execute: async (args) => {
       const calendar = await calDavClient
@@ -161,18 +165,67 @@ if (!!process.env.CALDAV_URL) {
       } else {
         uuid = v4().toString();
       }
-      const icalString = "";
+
+      const vevent = new ICAL.Event();
+      vevent.uid = uuid;
+      vevent.startDate = ICAL.Time.fromJSDate(new Date(args.startDate));
+      vevent.endDate = ICAL.Time.fromJSDate(new Date(args.endDate));
+      vevent.summary = args.summary;
+      if (args.description) {
+        vevent.description = args.description;
+      }
+      if (args.location) {
+        vevent.location = args.location;
+      }
+      vevent.organizer = `MAILTO:${process.env.USERNAME}`;
+
+      if (args.attendees) {
+        const attendees = args.attendees
+          .split(",")
+          .map((email) => email.trim());
+        vevent.component.addPropertyWithValue(
+          "ATTENDEE",
+          attendees.map((email) => `MAILTO:${email}`)
+        );
+      }
+
+      const vcal = new ICAL.Component("vcalendar");
+      vcal.addSubcomponent(vevent.component);
+      const icalString = vcal.toString();
 
       if (args.eventUid) {
         const foundEvent = await calDavClient.fetchCalendarObjects({
           calendar: calendar!,
-          filters: {
-            uid: args.eventUid,
-          },
+          filters: [
+            {
+              type: "comp-filter",
+              attrs: { name: "VCALENDAR" },
+              children: [
+                {
+                  type: "comp-filter",
+                  attrs: { name: "VEVENT" },
+                  children: [
+                    {
+                      type: "prop-filter",
+                      attrs: { name: "uid" },
+                      children: [
+                        {
+                          type: "text-match",
+                          value: uuid,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
         });
+        console.log(foundEvent);
         if (foundEvent.length > 0) {
           // update
           const event = foundEvent[0];
+          console.log(event);
           event!.data = icalString;
           await calDavClient.updateCalendarObject({
             calendarObject: event!,
