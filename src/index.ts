@@ -105,10 +105,13 @@ if (!!process.env.CALDAV_URL) {
           if (component) {
             parsed = {};
             component.getAllProperties().forEach((p) => {
-              if (p.name.toLowerCase() === 'x-apple-structured-data') {
+              if (p.name.toLowerCase() === "x-apple-structured-data") {
                 return;
               }
-              parsed[p.name] = p.getValues().length === 1 ? normalizeValue(p.getValues()[0]) : p.getValues().map(x => normalizeValue(x));
+              parsed[p.name] =
+                p.getValues().length === 1
+                  ? normalizeValue(p.getValues()[0])
+                  : p.getValues().map((x) => normalizeValue(x));
             });
           }
         }
@@ -120,6 +123,40 @@ if (!!process.env.CALDAV_URL) {
       });
 
       return JSON.stringify(results);
+    },
+  });
+
+  server.addTool({
+    description: "Add or update calendar event",
+    name: "add_or_update_calendar_event",
+    parameters: z.object({
+      startDate: z.string().describe("Start date in ISO format").optional(),
+      endDate: z.string().describe("End date in ISO format").optional(),
+      calendarName: z
+        .string()
+        .describe("Name of the calendar to create/update event in"),
+      description: z.string().describe("Description of the event").optional(),
+      summary: z.string().describe("Summary of the event"),
+      eventId: z
+        .string()
+        .describe("ID of the event in the case this is an update")
+        .optional(),
+      location: z.string().describe("Location of the event").optional(),
+    }),
+    execute: async (args) => {
+      const calendar = await calDavClient
+        .fetchCalendars()
+        .then((calendars) =>
+          calendars.find(
+            (c) =>
+              c.displayName &&
+              c.displayName.toString().toLowerCase() ===
+                args.calendarName.toLowerCase()
+          )
+        );
+
+      const icalString = "";
+      
     },
   });
 }
