@@ -15,30 +15,24 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "test": "vitest run --passWithNoTests",
-    "test:dev": "vitest --watch --passWithNoTests",
-    "test:dev:ui": "vitest --ui",
     "inspect": "fastmcp inspect src/index.ts",
     "dev": "fastmcp dev src/index.ts",
     "build": "ncc build src/index.ts -o dist",
     "start:http": "tsx watch src/index.ts --http",
     "start:stdio": "tsx watch src/index.ts",
-    "start": "npm run start:stdio",
-    "start:stdio:once": "tsx src/index.ts"
+    "start": "npm run start:stdio"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
-    "@vitest/ui": "^3.2.4",
-    "mcp-client": "^1.13.1",
     "node": "^22.20.0",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "typescript": "^5.9.2"
   },
   "dependencies": {
     "@vercel/ncc": "^0.38.4",
     "dotenv": "^17.2.2",
     "fastmcp": "^3.18.0",
+    "tsdav": "^2.1.5",
     "zod": "^3.25.76"
   }
 }

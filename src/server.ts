@@ -1,7 +1,6 @@
 import { FastMCP } from "fastmcp";
 import { VERSION } from "./version";
 import { z } from "zod";
-import helloWorld from "./tools/hello-world.tool";
 
 export const createServer = () => {
   const server = new FastMCP({
@@ -31,7 +30,7 @@ export const createServer = () => {
       name: z.string(),
     }),
     execute: async (args, ctx) => {
-      return helloWorld(args.name);
+      return "";
     },
   });
 
