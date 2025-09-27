@@ -5,6 +5,7 @@ dotenv.config({
 import { FastMCP } from "fastmcp";
 import { VERSION } from "./version";
 import { z } from "zod";
+import { createDAVClient } from "tsdav";
 
 const server = new FastMCP({
   name: "CalDAV MCP",
@@ -26,16 +27,28 @@ const server = new FastMCP({
   },
 });
 
-server.addTool({
-  description: "A simple tool that returns a greeting message.",
-  name: "hello_world",
-  parameters: z.object({
-    name: z.string(),
-  }),
-  execute: async (args, ctx) => {
-    return "";
-  },
-});
+if (!!process.env.CALDAV_URL) {
+  const calDavClient = await createDAVClient({
+    serverUrl: process.env.CALDAV_URL,
+    credentials: {
+      username: process.env.USERNAME || "",
+      password: process.env.PASSWORD || "",
+    },
+    authMethod: "Basic",
+    defaultAccountType: "caldav",
+  });
+
+  server.addTool({
+    description: "A simple tool that returns a greeting message.",
+    name: "hello_world",
+    parameters: z.object({
+      name: z.string(),
+    }),
+    execute: async (args, ctx) => {
+      return "";
+    },
+  });
+}
 
 let transport: "httpStream" | "stdio" = "stdio";
 if (process.env.TRANSPORT === "http") {
