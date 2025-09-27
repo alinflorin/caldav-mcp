@@ -36,6 +36,84 @@ const server = new FastMCP({
   },
 });
 
+if (!!process.env.CARDDAV_URL) {
+  const cardDavClient = await createDAVClient({
+    serverUrl: process.env.CARDDAV_URL,
+    credentials: {
+      username: process.env.USERNAME || "",
+      password: process.env.PASSWORD || "",
+    },
+    authMethod: "Basic",
+    defaultAccountType: "carddav",
+  });
+
+  server.addTool({
+    description: "Searches contacts by name",
+    name: "search_contacts",
+    parameters: z.object({
+      query: z.string().describe("Name to search for").optional(),
+    }),
+    execute: async (args) => {
+      const ab = (await cardDavClient.fetchAddressBooks())[0];
+      let results = (
+        await cardDavClient.fetchVCards({
+          addressBook: ab!,
+        })
+      ).map((x) => {
+        let parsed: any;
+        if (x.data && x.data.length > 0) {
+          const component = new ICAL.Component(ICAL.parse(x.data));
+          if (component) {
+            parsed = {};
+            component.getAllProperties().forEach((p) => {
+              if (p.name.toLowerCase() === "x-apple-structured-data") {
+                return;
+              }
+              parsed[p.name] =
+                p.getValues().length === 1
+                  ? normalizeValue(p.getValues()[0])
+                  : p.getValues().map((x) => normalizeValue(x));
+            });
+          }
+        }
+        return {
+          etag: x.etag,
+          url: x.url,
+          data: parsed,
+        };
+      });
+
+      if (!args.query) return JSON.stringify(results);
+      const lowerQuery = args.query.toLowerCase();
+
+      return JSON.stringify(
+        results.filter((contact) => {
+          const data = contact.data || {};
+
+          // Gather all searchable fields, flatten arrays and remove empty strings
+          const fields = [
+            data.fn,
+            data.nickname,
+            data.title,
+            data.email,
+            data.tel,
+            ...(Array.isArray(data.n) ? data.n : []),
+            ...(Array.isArray(data.org) ? data.org : []),
+            ...(Array.isArray(data.adr) ? data.adr : []),
+          ]
+            .filter((s) => s && s.trim()) // remove empty/null/whitespace
+            .map(String);
+
+          // Check if any field contains the query (case-insensitive)
+          return fields.some((field) =>
+            field.toLowerCase().includes(lowerQuery)
+          );
+        })
+      );
+    },
+  });
+}
+
 if (!!process.env.CALDAV_URL) {
   const calDavClient = await createDAVClient({
     serverUrl: process.env.CALDAV_URL,
